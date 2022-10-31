@@ -1,0 +1,10 @@
+api_hash: 7ddf1580ae65cacae4b5cd5ca2084cc7
+api_id: 309154
+chat_id: '@video_smeshnye'
+file_formats:
+  video:
+  - all
+ids_to_retry: []
+last_read_message_id: 0
+media_types:
+- video

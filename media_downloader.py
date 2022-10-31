@@ -4,6 +4,7 @@ import logging
 import os
 from typing import List, Optional, Tuple, Union
 
+import sys, getopt
 import pyrogram
 import yaml
 from pyrogram.types import Audio, Document, Photo, Video, VideoNote, Voice
@@ -28,8 +29,7 @@ THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 FAILED_IDS: list = []
 DOWNLOADED_IDS: list = []
 
-
-def update_config(config: dict):
+def update_config(config: dict, config_file):
     """
     Update existing configuration file.
 
@@ -41,7 +41,7 @@ def update_config(config: dict):
     config["ids_to_retry"] = (
         list(set(config["ids_to_retry"]) - set(DOWNLOADED_IDS)) + FAILED_IDS
     )
-    with open("config.yaml", "w") as yaml_file:
+    with open(config_file, "w") as yaml_file:
         yaml.dump(config, yaml_file, default_flow_style=False)
     logger.info("Updated last read message_id to config file")
 
@@ -127,9 +127,11 @@ async def _get_media_meta(
             ),
         )
     else:
+        logger.error("els")
         file_name = os.path.join(
-            THIS_DIR, _type, getattr(media_obj, "file_name", None) or ""
+            THIS_DIR, _type, config_filename.split(".")[0], getattr(media_obj, "file_name", None) or ""
         )
+    logger.error("_get_media_meta: "+file_name)
     return file_name, file_format
 
 
@@ -180,6 +182,7 @@ async def download_media(
                     continue
                 file_name, file_format = await _get_media_meta(_media, _type)
                 if _can_download(_type, file_formats, file_format):
+                    logger.error("download_media: "+file_name)
                     if _is_exist(file_name):
                         file_name = get_next_name(file_name)
                         download_path = await client.download_media(
@@ -353,9 +356,37 @@ async def begin_import(config: dict, pagination_limit: int) -> dict:
     return config
 
 
-def main():
+def main(argv):
     """Main function of the downloader."""
-    with open(os.path.join(THIS_DIR, "config.yaml")) as f:
+
+    # Options
+    options = "hc:"
+    
+    # Long options
+    long_options = ["help", "config"]
+
+    global config_filename
+    
+    try:
+        # Parsing arguments
+        arguments, values = getopt.getopt(argv, options, long_options)
+        # checking each arguments
+        for currentArgument, currentValue in arguments:
+    
+            if currentArgument in ("-h", "--help"):
+                logger.warning("USAGE:\nmedia_downloader.py -c [CONFIG_FILE_NAME]\nExiting...")
+                return
+                
+            elif currentArgument in ("-c", "--config"):
+                config_filename = currentValue
+             
+    except getopt.error as err:
+        # output error, and return with an error code
+        logger.error(str(err))
+
+    logger.info("Using config: " + config_filename)
+        
+    with open(os.path.join(THIS_DIR, "configs", config_filename)) as f:
         config = yaml.safe_load(f)
     updated_config = asyncio.get_event_loop().run_until_complete(
         begin_import(config, pagination_limit=100)
@@ -367,10 +398,10 @@ def main():
             "These files will be downloaded on the next run.",
             len(set(FAILED_IDS)),
         )
-    update_config(updated_config)
+    update_config(updated_config, os.path.join(THIS_DIR, "configs", config_filename))
     check_for_updates()
 
 
 if __name__ == "__main__":
     print_meta(logger)
-    main()
+    main(sys.argv[1:])
