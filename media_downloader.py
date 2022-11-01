@@ -41,7 +41,7 @@ def update_config(config: dict):
     config["ids_to_retry"] = (
         list(set(config["ids_to_retry"]) - set(DOWNLOADED_IDS)) + FAILED_IDS
     )
-    with open(config_filename, "w") as yaml_file:
+    with open(config_file_fullpath, "w") as yaml_file:
         yaml.dump(config, yaml_file, default_flow_style=False)
     logger.info("Updated last read message_id to config file")
 
@@ -366,7 +366,7 @@ def main(argv):
     long_options = ["help", "config"]
 
     global config_filename
-    
+    global config_file_fullpath
     try:
         # Parsing arguments
         arguments, values = getopt.getopt(argv, options, long_options)
@@ -379,6 +379,7 @@ def main(argv):
                 
             elif currentArgument in ("-c", "--config"):
                 config_filename = currentValue
+                config_file_fullpath = os.path.join(THIS_DIR, "configs", config_filename)
              
     except getopt.error as err:
         # output error, and return with an error code
@@ -386,7 +387,7 @@ def main(argv):
 
     logger.info("Using config: " + config_filename)
         
-    with open(os.path.join(THIS_DIR, "configs", config_filename)) as f:
+    with open(config_file_fullpath) as f:
         config = yaml.safe_load(f)
     updated_config = asyncio.get_event_loop().run_until_complete(
         begin_import(config, pagination_limit=100)
@@ -398,7 +399,7 @@ def main(argv):
             "These files will be downloaded on the next run.",
             len(set(FAILED_IDS)),
         )
-    update_config(updated_config, os.path.join(THIS_DIR, "configs", config_filename))
+    update_config(updated_config)
     check_for_updates()
 
 
