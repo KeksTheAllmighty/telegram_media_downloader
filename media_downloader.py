@@ -29,7 +29,7 @@ THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 FAILED_IDS: list = []
 DOWNLOADED_IDS: list = []
 
-def update_config(config: dict, config_file):
+def update_config(config: dict):
     """
     Update existing configuration file.
 
@@ -41,7 +41,7 @@ def update_config(config: dict, config_file):
     config["ids_to_retry"] = (
         list(set(config["ids_to_retry"]) - set(DOWNLOADED_IDS)) + FAILED_IDS
     )
-    with open(config_file, "w") as yaml_file:
+    with open(config_filename, "w") as yaml_file:
         yaml.dump(config, yaml_file, default_flow_style=False)
     logger.info("Updated last read message_id to config file")
 
